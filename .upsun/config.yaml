@@ -11,7 +11,7 @@ applications:
         set -ex
     web:
       commands:
-        start: sleep infinity
+        start: node routeur.php
       locations:
         /:
           root: ''
