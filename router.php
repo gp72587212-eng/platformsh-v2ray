@@ -3,7 +3,7 @@
 //  V2Ray xHTTP Reverse Proxy — Upsun / Platform.sh
 //  Remplace TON_IP_VPS par l'IP de ton serveur V2Ray
 // ============================================================
-define('VPS_HOST', 'TON_IP_VPS');
+define('VPS_HOST', '62.171.180.164');
 define('VPS_PORT', 443);
 define('VPS_SCHEME', 'https');
 
