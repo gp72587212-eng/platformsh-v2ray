@@ -1,35 +1,16 @@
 applications:
   app:
-    type: php:8.3
-    disk: 512
-
-    runtime:
-      extensions:
-        - curl
-
-    variables:
-      php:
-        output_buffering: 0
-        implicit_flush: 1
-        max_execution_time: 0
-        max_input_time: -1
+    type: "php:8.3"
 
     web:
       commands:
-        start: php -S 0.0.0.0:$PORT router.php
+        start: "php -S 0.0.0.0:$PORT router.php"
+
       locations:
-        /:
+        "/":
           passthru: true
-          expires: -1
-          headers:
-            Cache-Control: "no-store, no-cache"
 
 routes:
   "https://{default}/":
     type: upstream
     upstream: "app:http"
-    cache:
-      enabled: false
-  "https://www.{default}/":
-    type: redirect
-    to: "https://{default}/"
