@@ -1,21 +1,26 @@
-name: upsun-v2ray
-type: "golang:1.22"
+applications:
+  app:
+    type: "golang:1.22"
+    hooks:
+      build: |
+        go mod download
+        go build -o relay main.go
+      deploy: |
+        echo "Déploiement terminé"
+    web:
+      commands:
+        start: ./relay
+      upstream:
+        socket_family: tcp
+        protocol: http
+      locations:
+        /:
+          passthru: true
+          allow: true
 
-hooks:
-  build: |
-    go mod download
-    go build -o relay main.go
-  deploy: |
-    echo "Déploiement terminé"
-
-web:
-  commands:
-    start: |
-      ./relay
-  upstream:
-    socket_family: tcp
-    protocol: http
-  locations:
-    /:
-      passthru: true
-      allow: true
+routes:
+  "https://{default}/":
+    type: upstream
+    upstream: "app:http"
+    cache:
+      enabled: false
