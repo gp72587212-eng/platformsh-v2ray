@@ -19,8 +19,8 @@ var (
 
 func init() {
 	remoteHost = getEnv("REMOTE_HOST", "164.92.226.103")      // ⚠️ À remplacer par l'IP de votre VPS
-	remotePort = getEnv("REMOTE_PORT", "2083")                // ⚠️ Port du serveur Xray
-	remoteHostHeader = getEnv("REMOTE_HOST_HEADER", "upx.mjsd.ir") // ⚠️ Host attendu par Xray
+	remotePort = getEnv("REMOTE_PORT", "80")                // ⚠️ Port du serveur Xray
+	remoteHostHeader = getEnv("REMOTE_HOST_HEADER", "") // ⚠️ Host attendu par Xray
 
 	flag.StringVar(&remoteHost, "host", remoteHost, "IP du serveur Xray")
 	flag.StringVar(&remotePort, "port", remotePort, "Port du serveur Xray")
