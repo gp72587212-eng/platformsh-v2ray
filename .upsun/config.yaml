@@ -2,27 +2,25 @@ applications:
   app:
     type: php:8.3
 
+    source:
+      root: "/"
+
     runtime:
       extensions:
         - curl
 
-    variables:
-      php:
-        output_buffering: 0
-        implicit_flush: 1
-        max_execution_time: 0
-        max_input_time: -1
-
     web:
       locations:
         "/":
+          root: "public"
+          index:
+            - index.html
           passthru: "/router.php"
+          scripts: true
+          allow: true
+          expires: -1
 
 routes:
   "https://{default}/":
     type: upstream
     upstream: "app:http"
-
-  "https://www.{default}/":
-    type: redirect
-    to: "https://{default}/"
