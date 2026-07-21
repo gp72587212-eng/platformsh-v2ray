@@ -8,6 +8,7 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -18,9 +19,9 @@ var (
 )
 
 func init() {
-	remoteHost = getEnv("REMOTE_HOST", "164.92.226.103")      // ⚠️ À remplacer par l'IP de votre VPS
-	remotePort = getEnv("REMOTE_PORT", "80")                // ⚠️ Port du serveur Xray
-	remoteHostHeader = getEnv("REMOTE_HOST_HEADER", "") // ⚠️ Host attendu par Xray
+	remoteHost = getEnv("REMOTE_HOST", "62.171.180.164")
+	remotePort = getEnv("REMOTE_PORT", "80")
+	remoteHostHeader = getEnv("REMOTE_HOST_HEADER", "")
 
 	flag.StringVar(&remoteHost, "host", remoteHost, "IP du serveur Xray")
 	flag.StringVar(&remotePort, "port", remotePort, "Port du serveur Xray")
@@ -35,6 +36,72 @@ func getEnv(key, defaultValue string) string {
 	return defaultValue
 }
 
+const landingPage = `<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Proxy XHTTP</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #f6f8fa;
+            color: #24292e;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .container {
+            max-width: 600px;
+            padding: 40px;
+            text-align: center;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        h1 { font-size: 28px; font-weight: 600; color: #0366d6; }
+        p { color: #586069; line-height: 1.6; margin: 20px 0; }
+        .status {
+            display: inline-block;
+            padding: 6px 16px;
+            background: #dcffe4;
+            color: #28a745;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            background: #f1f8ff;
+            color: #0366d6;
+            border-radius: 12px;
+            font-size: 13px;
+            margin: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Proxy XHTTP</h1>
+        <p>Ce service est un relais sécurisé pour les connexions VLESS via le protocole XHTTP.</p>
+        <div class="status">● Service Operational</div>
+        <br><br>
+        <div>
+            <span class="badge">VLESS</span>
+            <span class="badge">XHTTP</span>
+            <span class="badge">TLS</span>
+        </div>
+        <p style="font-size: 14px; color: #6a737d; margin-top: 30px;">
+            Ce proxy est optimisé pour les connexions avec <strong>Orange Cameroun</strong> 🇨🇲
+        </p>
+    </div>
+</body>
+</html>`
+
 func main() {
 	target := fmt.Sprintf("http://%s:%s", remoteHost, remotePort)
 	remoteURL, err := url.Parse(target)
@@ -42,43 +109,50 @@ func main() {
 		log.Fatalf("URL cible invalide : %v", err)
 	}
 
-	// Transport HTTP avec des paramètres optimisés
 	transport := &http.Transport{
-		MaxIdleConns:        100,
-		MaxIdleConnsPerHost: 10,
-		IdleConnTimeout:     90 * time.Second,
-		DisableCompression:  false,
+		MaxIdleConns:          100,
+		MaxIdleConnsPerHost:   10,
+		IdleConnTimeout:       90 * time.Second,
+		DisableCompression:    false,
 		ResponseHeaderTimeout: 30 * time.Second,
 		ExpectContinueTimeout: 1 * time.Second,
 	}
 
-	// Création du reverse proxy
 	proxy := httputil.NewSingleHostReverseProxy(remoteURL)
 	proxy.Transport = transport
-	proxy.FlushInterval = 100 * time.Millisecond // Permet le streaming
+	proxy.FlushInterval = 100 * time.Millisecond
 
-	// Director personnalisé pour forcer l'en-tête Host
 	proxy.Director = func(req *http.Request) {
 		req.URL.Scheme = remoteURL.Scheme
 		req.URL.Host = remoteURL.Host
-		req.URL.Path = req.URL.Path   // conserve le chemin d'origine
+		req.URL.Path = req.URL.Path
 		req.URL.RawQuery = req.URL.RawQuery
-		req.Host = remoteHostHeader   // ← FORCE l'en-tête Host
+		if remoteHostHeader != "" {
+			req.Host = remoteHostHeader
+		}
 	}
 
-	// Gestion des erreurs du proxy
 	proxy.ErrorHandler = func(w http.ResponseWriter, r *http.Request, err error) {
 		log.Printf("Erreur proxy : %v", err)
 		http.Error(w, fmt.Sprintf("Erreur proxy : %v", err), http.StatusBadGateway)
 	}
 
-	// Route principale
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		userAgent := r.Header.Get("User-Agent")
+
+		// Détection navigateur
+		if strings.Contains(userAgent, "Mozilla") || strings.Contains(userAgent, "Chrome") || strings.Contains(userAgent, "Safari") || strings.Contains(userAgent, "Edg") {
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			fmt.Fprint(w, landingPage)
+			log.Printf("🌐 Landing page affichée pour %s", r.RemoteAddr)
+			return
+		}
+
+		// Requête VLESS/XHTTP → proxy
 		log.Printf("=> %s %s (Host: %s)", r.Method, r.URL.Path, r.Host)
 		proxy.ServeHTTP(w, r)
 	})
 
-	// Détermination du port d'écoute (Upsun fournit $PORT)
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
@@ -87,9 +161,11 @@ func main() {
 
 	log.Printf("Relais XHTTP démarré sur %s", addr)
 	log.Printf("Cible : %s", target)
-	log.Printf("Host forcé : %s", remoteHostHeader)
+	if remoteHostHeader != "" {
+		log.Printf("Host forcé : %s", remoteHostHeader)
+	}
 
 	if err := http.ListenAndServe(addr, nil); err != nil {
-		log.Fatalf("Erreur du serveur : %v", err)
+		log.Fatalf("Erreur serveur : %v", err)
 	}
 }
