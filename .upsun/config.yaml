@@ -16,7 +16,6 @@ applications:
     web:
       locations:
         "/":
-          root: "."
           passthru: "/router.php"
 
 routes:
