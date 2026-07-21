@@ -1,26 +1,21 @@
-applications:
-  app:
-    type: php:8.3
+name: upsun-v2ray
+type: "golang:1.22"
 
-    source:
-      root: "/"
+hooks:
+  build: |
+    go mod download
+    go build -o relay main.go
+  deploy: |
+    echo "Déploiement terminé"
 
-    runtime:
-      extensions:
-        - curl
-
-    web:
-      locations:
-        "/":
-          root: "public"
-          index:
-            - index.html
-          passthru: "/router.php"
-          scripts: true
-          allow: true
-          expires: -1
-
-routes:
-  "https://{default}/":
-    type: upstream
-    upstream: "app:http"
+web:
+  commands:
+    start: |
+      ./relay
+  upstream:
+    socket_family: tcp
+    protocol: http
+  locations:
+    /:
+      passthru: true
+      allow: true

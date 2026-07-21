@@ -1,0 +1,15 @@
+# Binaire compilé
+relay
+*.exe
+
+# Fichiers de logs
+*.log
+
+# Dossiers temporaires
+tmp/
+.idea/
+.vscode/
+
+# Fichiers système
+.DS_Store
+Thumbs.db
